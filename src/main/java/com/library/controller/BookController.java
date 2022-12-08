@@ -37,6 +37,7 @@ public class BookController {
 
     // API - Get all books with or without given title
     @GetMapping("/books")
+    @SecurityRequirement(name = "user")
     public ResponseEntity<List<Book>> getAllBooks(@RequestParam(required = false) String title) {
         ResponseEntity<List<Book>> re = new ResponseEntity<>(HttpStatus.NO_CONTENT);
 
@@ -66,6 +67,7 @@ public class BookController {
     // API - Find book by Id
     @GetMapping("/books/{id}")
     @Cacheable(value="book", key="#id") // 缓存key为id的数据到缓存book中
+    @SecurityRequirement(name = "user")
     public ResponseEntity<Book> getBookById(@PathVariable("id") long id) {
         ResponseEntity<Book> re;
 
@@ -118,7 +120,7 @@ public class BookController {
             _book.setAuthor(book.getAuthor());
             _book.setAmount(book.getAmount());
 
-            LOGGER.info("为id、key为{}的book数据做了缓存", _book.getId());
+            LOGGER.info("为id、key为{}的book数据做了缓存", id);
 
             re = new ResponseEntity<>(bookRepository.save(_book), HttpStatus.OK);
             LOGGER.info(re.toString());
@@ -152,7 +154,7 @@ public class BookController {
     }
 
     // API - Delete all books
-    @DeleteMapping("/tutorials")
+    @DeleteMapping("/books")
     @SecurityRequirement(name = "admin")
     public ResponseEntity<HttpStatus> deleteAllBooks() {
         ResponseEntity<HttpStatus> re;
