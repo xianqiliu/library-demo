@@ -65,7 +65,7 @@ INSERT INTO `users_roles` (`user_id`, `role_id`) VALUES (1, 2); -- user admin ha
 ![img_2.png](img_2.png)
 
 - 表BOOKS示例:
-![img_1.png](img_1.png)
+![img_16.png](img_16.png)
 
 - 表USERS示例：
 ![img_13.png](img_13.png)
