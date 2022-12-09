@@ -33,7 +33,7 @@ INSERT INTO `users_roles` (`user_id`, `role_id`) VALUES (1, 2); -- user admin ha
 
 - 开发工具：Intellij IDEA
 
-![img_12.png](img_1.png)
+![img_1.png](img_1.png)
 
 ## RestFul接口列表
 
