@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.library.exception.BadRequestException;
+import com.library.exception.InternalServerException;
+import com.library.exception.NoContentException;
+import com.library.exception.NotFoundException;
 import com.library.model.Book;
 import com.library.repository.BookRepository;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -39,47 +43,43 @@ public class BookController {
     @GetMapping("/books")
     @SecurityRequirement(name = "user")
     public ResponseEntity<List<Book>> getAllBooks(@RequestParam(required = false) String title) {
-        ResponseEntity<List<Book>> re = new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        List<Book> books = new ArrayList<>();
 
-        try {
-            List<Book> books = new ArrayList<>();
+        if (title == null)
+            books.addAll(bookRepository.findAll());
+        else
+            books.addAll(bookRepository.findByTitleContaining(title));
 
-            if (title == null)
-                books.addAll(bookRepository.findAll());
-            else
-                books.addAll(bookRepository.findByTitleContaining(title));
-
-            if (books.isEmpty()) {
-                LOGGER.info(re.toString());
-                return re;
-            }
-
-            re = new ResponseEntity<>(books, HttpStatus.OK);
-            LOGGER.info(re.toString());
-            return re;
-        } catch (Exception e) {
-            re = new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-            LOGGER.error(re.toString());
-            return re;
+        if (books.size() == 0) {
+            throw new NoContentException("No content");
         }
+
+        ResponseEntity<List<Book>> re = new ResponseEntity<>(books, HttpStatus.OK);
+        LOGGER.info(re.toString());
+        return re;
     }
 
     // API - Find book by Id
     @GetMapping("/books/{id}")
     @Cacheable(value="book", key="#id") // 缓存key为id的数据到缓存book中
     @SecurityRequirement(name = "user")
-    public ResponseEntity<Book> getBookById(@PathVariable("id") long id) {
-        ResponseEntity<Book> re;
+    public ResponseEntity<Book> getBookById(@PathVariable("id") String id) {
+        Optional<Book> book;
 
-        Optional<Book> bookData = bookRepository.findById(id);
-
-        if(bookData.isPresent()) {
-            LOGGER.info("为id、key为{}的book数据做了缓存", id);
-            re = new ResponseEntity<>(bookData.get(), HttpStatus.OK);
-        } else {
-            re = new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        try {
+            book = bookRepository.findById(Long.parseLong(id));
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("Invalid input param :" +id);
+        } catch (Exception e) {
+            throw new InternalServerException("Unknown error");
         }
 
+        if(!book.isPresent()) {
+            throw new NotFoundException("Invalid book id :" + id);
+        }
+
+        LOGGER.info("为id、key为{}的book数据做了缓存", id);
+        ResponseEntity<Book> re = new ResponseEntity<>(book.get(), HttpStatus.OK);
         LOGGER.info(re.toString());
         return re;
     }
@@ -88,47 +88,51 @@ public class BookController {
     @PostMapping("/books")
     @SecurityRequirement(name = "admin")
     public ResponseEntity<Book> createBook(@RequestBody Book book) {
-        ResponseEntity<Book> re;
+        if (book.getTitle() == null || book.getAuthor() == null)
+            throw new BadRequestException("The created book's title and author could not be null");
+
+        Book _book;
 
         try {
-            Book _book = bookRepository
+             _book = bookRepository
                     .save(new Book(book.getTitle(), book.getAuthor(), book.getAmount()));
-
-            re = new ResponseEntity<>(_book, HttpStatus.CREATED);
-            LOGGER.info(re.toString());
-            return re;
         } catch (Exception e) {
-            re = new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-            LOGGER.error(re.toString());
-            return re;
+            throw new InternalServerException("Unknown error");
         }
+
+        ResponseEntity<Book> re = new ResponseEntity<>(_book, HttpStatus.CREATED);
+        LOGGER.info(re.toString());
+        return re;
     }
 
     // API - Update the information of a book with given id
     @PutMapping("/books/{id}")
     @SecurityRequirement(name = "admin")
     @CachePut(value="book", key="#book.id") // 缓存更新的数据到缓存，其中缓存名称为book数据的key是book的id
-    public ResponseEntity<Book> updateBook(@PathVariable("id") long id, @RequestBody Book book) {
-        ResponseEntity<Book> re;
+    public ResponseEntity<Book> updateBook(@PathVariable("id") Long id, @RequestBody Book book) {
+        if (book.getTitle() == null || book.getAuthor() == null)
+            throw new BadRequestException("The created book's title and author could not be null");
 
-        Optional<Book> bookData = bookRepository.findById(id);
+        Optional<Book> bookData;
 
-        if (bookData.isPresent()) {
-            Book _book = bookData.get();
+        if(!bookRepository.existsById(id))
+            throw new NotFoundException("Invalid book id :" + id);
 
-            _book.setTitle(book.getTitle());
-            _book.setAuthor(book.getAuthor());
-            _book.setAmount(book.getAmount());
+        bookData = bookRepository.findById(id);
 
-            LOGGER.info("为id、key为{}的book数据做了缓存", id);
+        if(!bookData.isPresent())
+            throw new InternalServerException("Unknown error");
 
-            re = new ResponseEntity<>(bookRepository.save(_book), HttpStatus.OK);
-            LOGGER.info(re.toString());
-        } else {
-            re = new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            LOGGER.error(re.toString());
-        }
+        Book _book = bookData.get();
 
+        _book.setTitle(book.getTitle());
+        _book.setAuthor(book.getAuthor());
+        _book.setAmount(book.getAmount());
+
+        LOGGER.info("为id、key为{}的book数据做了缓存", id);
+
+        ResponseEntity<Book> re = new ResponseEntity<>(_book, HttpStatus.OK);
+        LOGGER.info(re.toString());
         return re;
     }
 
@@ -137,36 +141,39 @@ public class BookController {
     @SecurityRequirement(name = "admin")
     @CacheEvict(value="book") // 从缓存book中删除key为id的数据
     public ResponseEntity<HttpStatus> deleteBook(@PathVariable("id") long id) {
-        ResponseEntity<HttpStatus> re;
+
+        if(!bookRepository.existsById(id))
+            throw new NotFoundException("Invalid book id :" + id);
+
         try {
             bookRepository.deleteById(id);
-
-            LOGGER.info("删除了id、key为{}的book数据缓存",id);
-
-            re = new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            LOGGER.info(re.toString());
-            return re;
         } catch (Exception e) {
-            re = new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-            LOGGER.error(re.toString());
-            return re;
+            throw new InternalServerException("Unknown error");
         }
+
+        LOGGER.info("删除了id、key为{}的book数据缓存",id);
+
+        ResponseEntity<HttpStatus> re = new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        LOGGER.info(re.toString());
+        return re;
     }
 
     // API - Delete all books
     @DeleteMapping("/books")
     @SecurityRequirement(name = "admin")
+    @CacheEvict(cacheNames = "book",allEntries = true)
     public ResponseEntity<HttpStatus> deleteAllBooks() {
-        ResponseEntity<HttpStatus> re;
+
         try {
             bookRepository.deleteAll();
-            re = new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            LOGGER.error(re.toString());
-            return re;
         } catch (Exception e) {
-            re = new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-            LOGGER.error(re.toString());
-            return re;
+            throw new InternalServerException("Unknown error");
         }
+
+        LOGGER.info("删除了所有book数据缓存");
+
+        ResponseEntity<HttpStatus> re = new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        LOGGER.info(re.toString());
+        return re;
     }
 }

@@ -1,7 +1,8 @@
-package com.library.service;
+package com.library.service.Impl;
 
 import com.library.model.User;
 import com.library.repository.UserRepository;
+import com.library.service.MyUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.*;
 

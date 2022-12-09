@@ -1,6 +1,6 @@
 package com.library.config;
 
-import com.library.service.UserDetailsServiceImpl;
+import com.library.service.Impl.UserDetailsServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;

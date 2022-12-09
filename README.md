@@ -1,3 +1,16 @@
+## 注意事项：在运行后请打开H2数据库控制台插入以下默认管理员数据和权限数据
+- H2数据库控制台url：[http://localhost:8080/h2-ui/][http://localhost:8080/h2-ui/]
+```SQL
+INSERT INTO `roles` (`role_id`, `name`) VALUES ('1', 'ADMIN');
+INSERT INTO `roles` (`role_id`, `name`) VALUES ('2' , 'USER');
+
+-- 因为做了进行了加密，所以数据库不明文显示密码，此处管理员密码为admin
+INSERT INTO `users` (`user_id`, `username`, `password`, `enabled`) VALUES ('1', 'admin', '$2a$10$IqTJTjn39IU5.7sSCDQxzu3xug6z/LPU6IF0azE/8CkHCwYEnwBX.', '1');
+
+INSERT INTO `users_roles` (`user_id`, `role_id`) VALUES (1, 1); -- user admin has role ADMIN
+INSERT INTO `users_roles` (`user_id`, `role_id`) VALUES (1, 2); -- user admin has role USER
+```
+
 # library-demo
 
 - 一个简易的图书管理系统，支持可以对数据库内图书进行增删改查
@@ -24,18 +37,26 @@
 
 ## RestFul接口列表
 
-- Swagger UI （访问地址： [http://localhost:8080/swagger-ui.html）][http://localhost:8080/swagger-ui.html]
+- Swagger UI 
+  -访问地址： [http://localhost:8080/swagger-ui.html][http://localhost:8080/swagger-ui.html] 
 
 ![img.png](img.png)
 
 ## 登录权限控制
 
-- 实现方式：```Basic Auth```
+- 实现方式：基于JDBC的用户存储对Spring Security做配置
+  
+- 授权方式：基于不同角色做Basic Http
+  
+- 角色
+  
+  1. ADMIN（管理员）：可以对图书进行增加、修改、删除，查找所有用户
+  2. USER（普通用户）: 可以对图书进行查找
+  3. 所有人：可以进行注册
 
-- 如上图Swagger展示的接口列表，不带锁的API-即所有的```GET```请求是允许所有角色请求，
-  带锁的API-即```POST/PUT/DELETE```请求是需要提供管理员用户名密码的，该系统管理员用户名为```admin```,
-  密码为```12345678```
-
+- 对基于上图Swagger展示的接口列表和有关权限的说明
+![img_6.png](img_6.png)
+  
 ## 数据库
 
 - H2数据库控制台url：[http://localhost:8080/h2-ui/][http://localhost:8080/h2-ui/]
@@ -69,7 +90,27 @@
 2. 请求返回日志
 ![img_5.png](img_5.png)
    
-## 统一异常管理/统一返回体控制
-由于时间原因，目前异常和返回体统一返回```ResponseEntity```类型
+3. 异常日志
+![img_9.png](img_9.png)
+   
+## 统一异常管理
+- 返回自定义异常体
+
+eg. 404
+  ![img_7.png](img_7.png)
+
+eg. 400
+  ![img_8.png](img_8.png)
+
+
+
+## 统一返回体控制
+请求成功的返回体统一返回```ResponseEntity```类型
+
+eg. get
+![img_11.png](img_11.png)
+
+eg. post 
+![img_10.png](img_10.png)
 
 [http://localhost:8080/swagger-ui.html]: http://localhost:8080/swagger-ui.html）

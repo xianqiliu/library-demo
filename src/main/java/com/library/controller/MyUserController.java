@@ -1,6 +1,9 @@
 package com.library.controller;
 
-import com.library.model.Role;
+import com.library.exception.BadRequestException;
+import com.library.exception.ConflictException;
+import com.library.exception.InternalServerException;
+import com.library.exception.NoContentException;
 import com.library.model.User;
 import com.library.repository.RoleRepository;
 import com.library.repository.UserRepository;
@@ -33,58 +36,49 @@ public class MyUserController {
     // API - (Register) Create a new user
     @PostMapping("/users")
     public ResponseEntity<User> registerUser(@RequestParam String username, @RequestParam String password) {
-        ResponseEntity<User> re = null;
+        if(username == null || password == null)
+            throw new BadRequestException("Username and Password could not be null");
 
-        if (userRepository.countByUsername(username) == 0) {
-            try {
-                User user = new User();
-                user.setUsername(username);
-                user.setPassword(new BCryptPasswordEncoder().encode(password));
-                user.setEnabled(true);
-                user.getRoles().add(roleRepository.getById(2));
-
-                User _user = userRepository
-                        .save(user);
-
-                re = new ResponseEntity<>(_user, HttpStatus.CREATED);
-                LOGGER.info(re.toString());
-                return re;
-            } catch (Exception e) {
-                re = new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-                LOGGER.error(re.toString());
-                return re;
-            }
-        } else {
+        if (userRepository.countByUsername(username) != 0) {
             LOGGER.error("This username has been taken, please try to sign up with a new one");
-            re = new ResponseEntity<>(null, HttpStatus.CONFLICT);
-            LOGGER.error(re.toString());
-            return re;
+            throw new ConflictException("This username has been taken, please try to sign up");
         }
+
+        try {
+            User user = new User();
+            user.setUsername(username);
+            user.setPassword(new BCryptPasswordEncoder().encode(password));
+            user.setEnabled(true);
+            user.getRoles().add(roleRepository.getById(2));
+
+            User _user = userRepository
+                    .save(user);
+
+            ResponseEntity<User> re = new ResponseEntity<>(_user, HttpStatus.CREATED);
+            LOGGER.info(re.toString());
+            return re;
+        } catch (Exception e) {
+            throw new InternalServerException("Unknown error");
+        }
+
     }
 
     // API - Get all users
     @GetMapping("/users")
     @SecurityRequirement(name = "admin")
     public ResponseEntity<List<User>> getAllUsers() {
-        ResponseEntity<List<User>> re = new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        ResponseEntity<List<User>> re;
 
-        try {
-            List<User> users = new ArrayList<>();
+        List<User> users = new ArrayList<>();
 
-            users.addAll((Collection<? extends User>) userRepository.findAll());
+        users.addAll((Collection<? extends User>) userRepository.findAll());
 
-            if (users.isEmpty()) {
-                LOGGER.info(re.toString());
-                return re;
-            }
-
-            re = new ResponseEntity<>(users, HttpStatus.OK);
-            LOGGER.info(re.toString());
-            return re;
-        } catch (Exception e) {
-            re = new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-            LOGGER.error(re.toString());
-            return re;
+        if (users.isEmpty()) {
+            throw new NoContentException("No content");
         }
+
+        re = new ResponseEntity<>(users, HttpStatus.OK);
+        LOGGER.info(re.toString());
+        return re;
     }
 }
