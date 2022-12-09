@@ -62,12 +62,19 @@ INSERT INTO `users_roles` (`user_id`, `role_id`) VALUES (1, 2); -- user admin ha
 - H2数据库控制台url：[http://localhost:8080/h2-ui/][http://localhost:8080/h2-ui/]
 
 - H2数据库链接配置：
-
 ![img_2.png](img_2.png)
 
-- H2数据库默认存在表以及默认数据(位于```./testdb.mv.db```):
+- 表BOOKS示例:
+![img_1.png](img_1.png)
 
-![img_3.png](img_3.png)
+- 表USERS示例：
+![img_13.png](img_13.png)
+  
+- 表ROLES示例：
+![img_14.png](img_14.png)
+  
+- 表USERS_ROLES示例：
+![img_15.png](img_15.png)
 
 ## 主要缓存
 
@@ -114,3 +121,7 @@ eg. post
 ![img_10.png](img_10.png)
 
 [http://localhost:8080/swagger-ui.html]: http://localhost:8080/swagger-ui.html）
+
+[http://localhost:8080/h2-ui/]: http://localhost:8080/h2-ui
+
+[http://localhost:8080/h2-ui/]: http://localhost:8080/h2-ui/
